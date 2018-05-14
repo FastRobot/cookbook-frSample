@@ -1,0 +1,54 @@
+---
+driver:
+  name: ec2
+  aws_ssh_key_id: <%= ENV['AWS_SSH_KEY_ID'] %>
+  instance_type: t2.medium
+  # assumes enough terraform generated infra is running for us to develop in
+  security_group_filter:
+    tag:   'Name'
+    value: 'our_instance_sg'
+  subnet_filter:
+    tag:   'Name'
+    value: 'this_private_subnet'
+  region: us-west-2
+  associate_public_ip: true
+  iam_profile_name: this_instance_profile
+
+# you need the kitchen-sync gem for this to work
+transport:
+  name: sftp
+  ssh_key: <%= ENV['AWS_SSH_KEY_PEM'] %>
+
+provisioner:
+  name: chef_zero
+  # You may wish to disable always updating cookbooks in CI or other testing environments.
+  # For example:
+  #   always_update_cookbooks: <%= !ENV['CI'] %>
+  always_update_cookbooks: true
+  require_chef_omnibus: 13
+  environments_path: test/environments
+  roles_path: test/roles
+  data_bags_path: test/data_bags
+  client_rb:
+    environment: test
+
+verifier:
+  name: inspec
+
+platforms:
+  - name: ubuntu-16.04
+#    driver:
+#      image_id: ami-22741f5a #  18.04 in us-west-2
+#      image_search:
+#        owner-id: "NEEDTHIS"
+#        name: our_custom-ubuntu1604*
+#        is-public: false
+
+suites:
+  - name: default
+    run_list:
+      - recipe[frSample]
+    verifier:
+      inspec_tests:
+        - test/smoke/default
+    attributes:
